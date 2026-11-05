@@ -12,11 +12,18 @@ jobs:
     permissions: {contents: read, security-events: write}
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: koda-ai-studio/agent-bom
+          ref: fix/github-action-sarif-gate
+      - uses: actions/checkout@v4
+        with:
+          path: fixture
       - id: ab
         continue-on-error: true
         uses: koda-ai-studio/agent-bom@fix/github-action-sarif-gate
         with:
           install-from-source: 'true'
+          scan-ref: fixture
           severity-threshold: high
           upload-sarif: ${{ matrix.os == 'ubuntu-latest' && 'true' || 'false' }}
           mcp-gate: 'true'
@@ -29,4 +36,4 @@ jobs:
           ls -la agent-bom-results.sarif || true
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: 'action-${{ matrix.os }}', path: 'agent-bom-results.sarif', if-no-files-found: warn}
+        with: {name: 'action-${{ matrix.os }}', path: '*.sarif', if-no-files-found: warn}
