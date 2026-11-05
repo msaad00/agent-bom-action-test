@@ -19,13 +19,13 @@ jobs:
           [project]
           name = "fix-branch-install"
           version = "0"
-          dependencies = ["agent-bom @ git+https://github.com/koda-ai-studio/agent-bom@fix/github-action-sarif-gate"]
+          dependencies = ["agent-bom @ git+https://github.com/koda-ai-studio/agent-bom@fix/action-cold-start"]
           [tool.setuptools]
           packages = []
           TOML
       - id: ab
         continue-on-error: true
-        uses: koda-ai-studio/agent-bom@fix/github-action-sarif-gate
+        uses: koda-ai-studio/agent-bom@fix/action-cold-start
         with:
           install-from-source: 'true'
           severity-threshold: high
@@ -41,3 +41,29 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: 'action-${{ matrix.os }}', path: '*.sarif', if-no-files-found: warn}
+  windows-full:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install target for the fix branch
+        shell: bash
+        run: |
+          cat > pyproject.toml <<'TOML'
+          [project]
+          name = "fix-branch-install"
+          version = "0"
+          dependencies = ["agent-bom @ git+https://github.com/koda-ai-studio/agent-bom@fix/action-cold-start"]
+          [tool.setuptools]
+          packages = []
+          TOML
+      - id: ab
+        continue-on-error: true
+        uses: koda-ai-studio/agent-bom@fix/action-cold-start
+        with:
+          install-from-source: 'true'
+          vuln-db-scope: full
+          severity-threshold: high
+          upload-sarif: 'false'
+          sbom-artifact: none
