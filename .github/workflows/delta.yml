@@ -3,9 +3,16 @@ on: pull_request
 permissions: {contents: read}
 jobs:
   agent-bom:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: {os: [ubuntu-latest, windows-latest]}
+    runs-on: ${{ matrix.os }}
     permissions: {contents: read, pull-requests: write}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: koda-ai-studio/agent-bom
+          ref: fix/github-action-sarif-gate
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -14,8 +21,9 @@ jobs:
         with:
           path: head
       - name: Baseline from the base branch
-        uses: koda-ai-studio/agent-bom@v0
+        uses: koda-ai-studio/agent-bom@fix/github-action-sarif-gate
         with:
+          install-from-source: 'true'
           scan-ref: base
           format: json
           output: baseline.json
@@ -24,10 +32,11 @@ jobs:
           pr-comment: 'false'
       - name: Gate on new findings
         id: gate
-        uses: koda-ai-studio/agent-bom@v0
+        uses: koda-ai-studio/agent-bom@fix/github-action-sarif-gate
         with:
+          install-from-source: 'true'
           scan-ref: head
           baseline: baseline.json
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: delta, path: "*.sarif\nbaseline.json", if-no-files-found: warn}
+        with: {name: 'delta-${{ matrix.os }}', path: "*.sarif\nbaseline.json", if-no-files-found: warn}
