@@ -14,6 +14,7 @@ jobs:
         with:
           path: head
       - name: Baseline from the base branch
+        continue-on-error: true
         uses: koda-ai-studio/agent-bom@v0
         with:
           scan-ref: base
