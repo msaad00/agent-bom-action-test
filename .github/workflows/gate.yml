@@ -14,8 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - id: ab
         continue-on-error: true
-        uses: koda-ai-studio/agent-bom@v0
+        uses: koda-ai-studio/agent-bom@fix/github-action-sarif-gate
         with:
+          install-from-source: 'true'
           severity-threshold: high
           upload-sarif: ${{ matrix.os == 'ubuntu-latest' && 'true' || 'false' }}
           mcp-gate: 'true'
