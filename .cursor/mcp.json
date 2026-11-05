@@ -1,0 +1,1 @@
+{"mcpServers":{"remote-bridge":{"command":"npx","args":["-y","mcp-remote@0.1.15","https://example.com/mcp"],"env":{"BRIDGE_API_KEY":"${BRIDGE_API_KEY}"}},"fs":{"command":"npx","args":["-y","@modelcontextprotocol/server-filesystem@2025.1.14","/tmp"]}}}

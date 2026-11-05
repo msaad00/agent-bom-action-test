@@ -1,0 +1,33 @@
+name: new findings
+on: pull_request
+permissions: {contents: read}
+jobs:
+  agent-bom:
+    runs-on: ubuntu-latest
+    permissions: {contents: read, pull-requests: write}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - uses: actions/checkout@v4
+        with:
+          path: head
+      - name: Baseline from the base branch
+        uses: koda-ai-studio/agent-bom@v0
+        with:
+          scan-ref: base
+          format: json
+          output: baseline.json
+          severity-threshold: ''
+          annotations: 'false'
+          pr-comment: 'false'
+      - name: Gate on new findings
+        id: gate
+        uses: koda-ai-studio/agent-bom@v0
+        with:
+          scan-ref: head
+          baseline: baseline.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: delta, path: "*.sarif\nbaseline.json", if-no-files-found: warn}

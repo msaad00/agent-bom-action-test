@@ -1,0 +1,31 @@
+name: gate
+on:
+  push: {branches: [main]}
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  action:
+    strategy:
+      fail-fast: false
+      matrix: {os: [ubuntu-latest, macos-latest, windows-latest]}
+    runs-on: ${{ matrix.os }}
+    permissions: {contents: read, security-events: write}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ab
+        continue-on-error: true
+        uses: koda-ai-studio/agent-bom@v0
+        with:
+          severity-threshold: high
+          upload-sarif: ${{ matrix.os == 'ubuntu-latest' && 'true' || 'false' }}
+          mcp-gate: 'true'
+          sbom-artifact: cyclonedx
+      - name: Record outputs
+        if: always()
+        shell: bash
+        run: |
+          echo "outcome=${{ steps.ab.outcome }} exit=${{ steps.ab.outputs.exit-code }} status=${{ steps.ab.outputs.scan-status }} vulns=${{ steps.ab.outputs.vulnerability-count }} grade=${{ steps.ab.outputs.posture-grade }}"
+          ls -la agent-bom-results.sarif || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'action-${{ matrix.os }}', path: 'agent-bom-results.sarif', if-no-files-found: warn}

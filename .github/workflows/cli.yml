@@ -1,0 +1,48 @@
+name: cli
+on:
+  push: {branches: [main]}
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  cli:
+    strategy:
+      fail-fast: false
+      matrix: {os: [ubuntu-latest, macos-latest, windows-latest]}
+    runs-on: ${{ matrix.os }}
+    defaults: {run: {shell: bash}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install
+        run: |
+          time python -m pip install -q "agent-bom[api,mcp-server]==0.113.2"
+          agent-bom --version
+      - name: Write MCP configs at each client's real path
+        run: python .github/write_configs.py
+      - name: Discovery from the real user profile
+        continue-on-error: true
+        run: |
+          mkdir -p out; set +e
+          agent-bom scan -f json -o out/discover.json > out/discover.log 2>&1; echo "discover exit=$?"
+          python .github/summarize.py out/discover.json
+          agent-bom mcp inventory --format json > out/inventory.json 2> out/inventory.err; echo "inventory exit=$?"
+      - name: Project scan and outputs
+        continue-on-error: true
+        run: |
+          set +e
+          agent-bom scan -p . --no-discover -f json -o out/project.json > out/project.log 2>&1; echo "project exit=$?"
+          python .github/summarize.py out/project.json
+          for f in sarif cyclonedx spdx html; do agent-bom scan -p . --no-discover -f $f -o out/r.$f > out/$f.log 2>&1; echo "$f exit=$? bytes=$(wc -c < out/r.$f)"; done
+          agent-bom iac infra k8s -f json -o out/iac.json > out/iac.log 2>&1; echo "iac exit=$?"
+          agent-bom secrets . > out/secrets.log 2>&1; echo "secrets exit=$?"
+          agent-bom check lodash@4.17.20 --ecosystem npm > out/check.log 2>&1; echo "check exit=$?"
+      - name: API server with SQLite and a push
+        continue-on-error: true
+        run: python .github/api_smoke.py
+      - name: MCP stdio handshake
+        continue-on-error: true
+        run: python .github/mcp_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'cli-${{ matrix.os }}', path: out, if-no-files-found: warn}
